@@ -317,7 +317,3 @@ Possible future upgrades:
 Free for personal use.
 
 ---
-
-# Author
-
-Generated with ChatGPT for rapid local media server development.
