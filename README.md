@@ -1,113 +1,194 @@
-# Go Media Server (Netflix-Style Browser UI)
+# Go Media Server
 
-A lightweight **Golang media server** that scans a folder of video/audio files and streams them to a web browser using a **Netflix-style interface**.
+A lightweight **Golang media streaming server** that serves video and audio to a web browser with a **Netflix‑style interface**.
 
-It runs as a single Go program and serves a responsive web UI that allows browsing, searching, and streaming media directly in the browser.
+Features include password protection, thumbnail generation, streaming with range support, request logging, and a modern responsive UI.
 
 ---
 
 # Features
 
-* Netflix-style card interface
-* Browser streaming with HTTP range support
-* Automatic library scanning
-* Thumbnail generation (via ffmpeg)
-* Duration extraction (via ffprobe)
-* Folder grouping
-* Search and sorting
-* Video + audio support
-* Modal player
-* Responsive UI (desktop / tablet / mobile)
-* Safe path handling (prevents directory traversal)
-* Optional automatic rescanning
+### Streaming
+
+* Browser streaming of video and audio
+* HTTP range support for smooth playback
+* Works with:
+
+```
+mp4
+mkv
+mov
+webm
+mp3
+m4a
+wav
+ogg
+```
+
+Best browser compatibility:
+
+```
+MP4 (H264 + AAC)
+```
 
 ---
 
-# Screenshot
+# User Interface
 
-The interface includes:
+Netflix‑style UI including:
 
-* Media rows grouped by folder
-* Poster thumbnails
-* Duration badges
-* Click-to-play modal player
-* Search and sorting tools
+* thumbnail previews
+* media duration
+* video resolution badge
+* modal video player
+* search
+* sorting
+* grouped folders
+
+The layout is constrained to a **fixed maximum width** for better viewing on ultrawide displays.
 
 ---
 
-# Requirements
+# Security
 
-Minimum:
+## Login Page
+
+The server provides a **custom login page** instead of a browser authentication popup.
+
+Session authentication uses a secure cookie.
+
+Run with:
 
 ```
-Go 1.20+
+-password mysecret
 ```
 
-Optional but recommended:
+Without the flag the server runs **without authentication**.
+
+---
+
+# Download Blocking
+
+The server discourages downloading using:
+
+* `controlsList="nodownload"`
+* disabled right‑click on media
+* `Content-Disposition: inline`
+* no-cache headers
+
+Note:
+
+> If a browser can watch a video it technically receives the bytes, so downloads cannot be prevented completely. These protections stop casual downloading.
+
+---
+
+# Logging
+
+The server logs client requests including:
+
+* client IP
+* hostname
+* method
+* path
+* query
+* user agent
+* referer
+* request duration
+
+Example log entry:
+
+```
+client_ip=192.168.1.24 hostname=desktop.local method=GET path=/stream/ab83f1 duration=45ms
+```
+
+Logging can be disabled:
+
+```
+-log-requests false
+```
+
+---
+
+# Log File
+
+Logs can be written to a file using:
+
+```
+-log-file mediaserver.log
+```
+
+Example run:
+
+```
+go run MediaSvr.go \
+-root "D:\\Media" \
+-password mysecret \
+-log-file server.log
+```
+
+If not specified, logs are printed to the console.
+
+---
+
+# Thumbnails
+
+Thumbnails are automatically generated using **ffmpeg**.
+
+Requirements:
 
 ```
 ffmpeg
 ffprobe
 ```
 
-These enable:
+Thumbnail features:
 
-* video duration detection
-* automatic thumbnail generation
-
-Install on most systems with:
-
-Linux
-
-```
-sudo apt install ffmpeg
-```
-
-Mac
-
-```
-brew install ffmpeg
-```
-
-Windows
-
-Download from
-
-```
-https://ffmpeg.org/download.html
-```
-
-and add to PATH.
+* automatic generation
+* cached in `.thumbs` folder
+* resolution badge overlay
+* duration overlay
 
 ---
 
 # Installation
 
-Clone or copy the file:
+### Install Go
 
 ```
-MediaSvr.go
+https://go.dev/dl/
 ```
 
-Run:
+### Install FFmpeg
+
+Windows:
 
 ```
-go run MediaSvr.go -root "/path/to/media"
+winget install ffmpeg
 ```
 
-Example (Windows)
+Linux:
 
 ```
-go run MediaSvr.go -root "D:\Movies"
+sudo apt install ffmpeg
 ```
 
-Example (Linux)
+Mac:
 
 ```
-go run MediaSvr.go -root "/mnt/media"
+brew install ffmpeg
 ```
 
-Then open in browser:
+---
+
+# Running the Server
+
+Example:
+
+```
+go run MediaSvr.go -root "D:\\Movies"
+```
+
+Open browser:
 
 ```
 http://localhost:8080
@@ -117,203 +198,91 @@ http://localhost:8080
 
 # Command Line Options
 
-| Flag             | Description                | Default    |
-| ---------------- | -------------------------- | ---------- |
-| `-root`          | Media library directory    | `.`        |
-| `-addr`          | Server address             | `:8080`    |
-| `-title`         | UI title                   | `My Media` |
-| `-scan-on-start` | Scan library at startup    | `true`     |
-| `-refresh`       | Auto rescan interval       | `0`        |
-| `-allow-audio`   | Include audio files        | `true`     |
-| `-thumb-width`   | Thumbnail width            | `480`      |
-| `-thumb-height`  | Thumbnail height           | `270`      |
-| `-thumb-offset`  | Thumbnail capture position | `00:00:10` |
-| `-thumb-dir`     | Thumbnail cache folder     | `.thumbs`  |
-| `-log-requests`  | Enable HTTP logging        | `true`     |
+| Flag             | Description                |
+| ---------------- | -------------------------- |
+| `-root`          | Media library root folder  |
+| `-addr`          | HTTP listen address        |
+| `-password`      | Enable login page          |
+| `-log-file`      | Write logs to file         |
+| `-log-requests`  | Enable request logging     |
+| `-scan-on-start` | Scan library at startup    |
+| `-refresh`       | Periodic library rescan    |
+| `-thumb-width`   | Thumbnail width            |
+| `-thumb-height`  | Thumbnail height           |
+| `-thumb-offset`  | Time offset for thumbnails |
+| `-allow-audio`   | Include audio files        |
 
-Example:
+Example full configuration:
 
 ```
 go run MediaSvr.go \
--root "/media/movies" \
--title "Home Cinema" \
--refresh 10m
+-root "D:\\Media" \
+-password netflix123 \
+-log-file mediaserver.log \
+-log-requests true \
+-refresh 5m
 ```
 
 ---
 
-# Supported Media Formats
-
-Video
+# Folder Layout Example
 
 ```
-mp4
-m4v
-webm
-mov
-mkv
+Media
+ ├── Movies
+ │   ├── Interstellar.mp4
+ │   └── BladeRunner2049.mkv
+ ├── TV
+ │   └── Series
+ │       └── Episode1.mp4
+ └── Music
+     └── Album
+         └── Track01.mp3
 ```
 
-Audio
-
-```
-mp3
-m4a
-wav
-ogg
-```
-
-**Best browser compatibility**
-
-```
-MP4 (H.264 video + AAC audio)
-```
-
-Some browsers cannot play MKV or certain codecs.
+The server groups media based on folder structure.
 
 ---
 
-# Directory Layout Example
+# Performance Notes
 
-```
-Movies/
-  Action/
-      John Wick.mp4
-      Matrix.mp4
+For large libraries:
 
-  SciFi/
-      Interstellar.mp4
-      Arrival.mp4
-
-  Music/
-      Track1.mp3
-```
-
-Each folder becomes a **row** in the UI.
-
----
-
-# Thumbnails
-
-If **ffmpeg is installed**, thumbnails are generated automatically and cached:
-
-```
-.thumb/
-```
-
-Example:
-
-```
-.thumb/6e91c7c9.jpg
-```
-
-If ffmpeg is not available a placeholder image is used.
-
----
-
-# Streaming
-
-The server streams media using:
-
-```
-HTTP Range Requests
-```
-
-This allows:
-
-* seeking
-* buffering
-* large file playback
-* direct browser streaming
-
-No external streaming server required.
-
----
-
-# Security
-
-Basic protections included:
-
-* root directory sandbox
-* safe file ID hashing
-* path traversal prevention
-
-However this server is designed for **home use**.
-
-Do not expose directly to the internet without a reverse proxy.
+* first scan may take time
+* thumbnails generate on first view
+* cached thumbnails are reused
 
 Recommended:
 
 ```
-Nginx
-Caddy
-Traefik
+-refresh 5m
 ```
 
 ---
 
-# Performance
+# Limitations
 
-Typical usage:
-
-* thousands of media files
-* multiple simultaneous streams
-* minimal CPU usage
-
-Most CPU load comes from:
-
-```
-ffmpeg thumbnail generation
-```
-
-which happens only once per file.
+* MKV playback depends on browser codec support
+* Downloads cannot be completely prevented
+* ffmpeg required for thumbnails
 
 ---
 
-# Running as a Service
+# Future Improvements
 
-Linux systemd example:
+Possible upgrades:
 
-```
-[Unit]
-Description=Go Media Server
-
-[Service]
-ExecStart=/usr/local/bin/MediaSvr -root /media
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
----
-
-# Known Limitations
-
-* Browser codec support varies
-* MKV may not play everywhere
-* No user authentication
-* No adaptive streaming (HLS)
-
----
-
-# Planned Improvements
-
-Possible future upgrades:
-
-* HLS streaming fallback
-* transcoding for unsupported formats
+* HLS streaming
+* hardware transcoding
+* resume playback
 * user accounts
 * watch history
-* resume playback
-* continue watching row
-* poster artwork support
-* TV series detection
+* media metadata scraping
 
 ---
 
 # License
 
-Free for personal use.
+Open source example project.
 
----
+Use freely and modify as needed.
